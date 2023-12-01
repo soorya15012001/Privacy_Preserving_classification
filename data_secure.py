@@ -3,22 +3,31 @@ import cv2
 import tqdm
 import numpy as np
 import random
+from PIL import Image  # for resizing with anti-aliasing
 
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
 w_f = []
 h_f = []
 
+def resize_image_with_antialiasing(image_path, new_size):
+    pil_image = Image.open(image_path)
+    # lanczos resampling takes care of antialiasing
+    pil_image_resized = pil_image.resize(new_size, Image.LANCZOS)
+    np_image = np.array(pil_image_resized)
+    # Convert RGB to BGR (OpenCV uses BGR by default)
+    np_image = cv2.cvtColor(np_image, cv2.COLOR_RGB2BGR)
+    return np_image
 
 def crop(path):
     for i in tqdm.tqdm(os.listdir(path)):
-        image = cv2.imread(path+"/"+i)
+        image = resize_image_with_antialiasing(path+"/"+i, (100, 100)) #cv2.imread(path+"/"+i)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.1, 4)
         try:
             x, y, w, h = faces[0]
             image = image[y:y+h, x:x+w]
-            image = cv2.resize(image, (100, 100))
+            #image = cv2.resize(image, (100, 100))
             cv2.imwrite("cropped_"+path+"/"+i, image)
         except IndexError:
             os.remove(path+"/"+i)
