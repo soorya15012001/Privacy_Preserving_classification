@@ -23,7 +23,7 @@ def pil_to_numpy(pil_image):  # helper func for using both PIL & cv2
     np_image = cv2.cvtColor(np_image, cv2.COLOR_RGB2BGR)
     return np_image
 
-def crop(path):
+def crop(path, new_size=(224, 224)):
     for i in tqdm.tqdm(os.listdir(path)):
         image = cv2.imread(path+"/"+i)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -31,7 +31,7 @@ def crop(path):
         try:
             x, y, w, h = faces[0]
             image = image[y:y+h, x:x+w]
-            image = pil_to_numpy(numpy_to_pil(image).resize((224, 224), Image.LANCZOS))  #cv2.resize(image, (100, 100))
+            image = pil_to_numpy(numpy_to_pil(image).resize(new_size, Image.LANCZOS))  #cv2.resize(image, (100, 100))
             cv2.imwrite("cropped_"+path+"/"+i, image)
         except IndexError:
             os.remove(path+"/"+i)
@@ -96,7 +96,7 @@ def get_random_face_chunking(test_image, random_images, chunk_size):
 
 
 
-def main(path, blend):
+def main(path, op=None, new_size=(224, 224)):
     for k, i in enumerate(tqdm.tqdm(os.listdir(path))):
         image_orig = cv2.imread(path+"/"+i)
 
@@ -105,28 +105,37 @@ def main(path, blend):
         try:
             x, y, w, h = faces[0]
             image1 = image_orig[y:y+h, x:x+w]
-            if blend:
+            if op == "blend":
                 image = get_random_face_blending(path, n=3)
                 image = pil_to_numpy(numpy_to_pil(image).resize((w, h), Image.LANCZOS))  #cv2.resize(image, (w, h))
                 image_orig[y:y + h, x:x + w] = image
-                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize((224, 224), Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
+                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize(new_size, Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
                 # cv2.imshow("original", image_orig)
                 # cv2.waitKey(0)
                 cv2.imwrite("final_"+path+"_blend/"+path+"_"+str(k)+".jpg", image_orig)
+                print(f"Blended & resized images written to dir final_{path}_blend/")
 
-            else:
-                test = pil_to_numpy(numpy_to_pil(image1).resize((224, 224), Image.LANCZOS))  #cv2.resize(image1, (100, 100))
+            elif op == "chunk":
+                test = pil_to_numpy(numpy_to_pil(image1).resize(new_size, Image.LANCZOS))  #cv2.resize(image1, (100, 100))
                 files = os.listdir("cropped_"+path)
                 random_image_paths = random.sample(files, 10)
                 random_images = [cv2.imread("cropped_"+path+"/" + image_path) for image_path in random_image_paths]
                 image = get_random_face_chunking(test, random_images, chunk_size=25)
                 image = pil_to_numpy(numpy_to_pil(image).resize((w, h), Image.LANCZOS))  #cv2.resize(image, (w, h))
                 image_orig[y:y + h, x:x + w] = image
-                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize((224, 224), Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
+                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize(new_size, Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
                 # cv2.imshow("original", image_orig)
                 # cv2.waitKey(0)
                 cv2.imwrite("final_"+path+"_chunk/"+path+"_"+str(k)+".jpg", image_orig)
+                print(f"Chunked & resized images written to dir final_{path}_chunk/")
 
+            elif op == "resize":
+                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize(new_size, Image.LANCZOS))
+                cv2.imwrite("final_"+path+"_resized/"+path+"_"+str(k)+".jpg", image_orig)
+                print(f"Resized images written to dir final_{path}_resized/")
+
+            else:
+                print("Invalid arg: op argument to main(path, op) should be one of blend, chunk, and resize.")
 
         except IndexError:
             os.remove(path+"/"+i)
@@ -134,7 +143,9 @@ def main(path, blend):
 
 # crop("female")
 
-main("male", blend=1)
-main("female", blend=1)
-main("male", blend=0)
-main("female", blend=0)
+main("male", op="blend")
+main("female", op="blend")
+main("male", op="chunk")
+main("female", op="chunk")
+main("male", op="resize")
+main("female", op="resize")
