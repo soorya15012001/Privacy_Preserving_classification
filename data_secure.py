@@ -10,24 +10,28 @@ face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 w_f = []
 h_f = []
 
-def resize_image_with_antialiasing(image_path, new_size):
-    pil_image = Image.open(image_path)
-    # lanczos resampling takes care of antialiasing
-    pil_image_resized = pil_image.resize(new_size, Image.LANCZOS)
-    np_image = np.array(pil_image_resized)
-    # Convert RGB to BGR (OpenCV uses BGR by default)
+def numpy_to_pil(np_image):  # helper func for using both PIL & cv2
+    # Convert BGR to RGB (PIL uses RGB by default)
+    if np_image.shape[2] == 3:  # Check if the image has 3 color channels
+        np_image = cv2.cvtColor(np_image, cv2.COLOR_BGR2RGB)
+    pil_image = Image.fromarray(np_image)
+    return pil_image
+
+def pil_to_numpy(pil_image):  # helper func for using both PIL & cv2
+    np_image = np.array(pil_image)
+    # Convert RGB back to BGR
     np_image = cv2.cvtColor(np_image, cv2.COLOR_RGB2BGR)
     return np_image
 
 def crop(path):
     for i in tqdm.tqdm(os.listdir(path)):
-        image = resize_image_with_antialiasing(path+"/"+i, (100, 100)) #cv2.imread(path+"/"+i)
+        image = cv2.imread(path+"/"+i)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.1, 4)
         try:
             x, y, w, h = faces[0]
             image = image[y:y+h, x:x+w]
-            #image = cv2.resize(image, (100, 100))
+            image = pil_to_numpy(numpy_to_pil(image).resize((224, 224), Image.LANCZOS))  #cv2.resize(image, (100, 100))
             cv2.imwrite("cropped_"+path+"/"+i, image)
         except IndexError:
             os.remove(path+"/"+i)
@@ -103,22 +107,22 @@ def main(path, blend):
             image1 = image_orig[y:y+h, x:x+w]
             if blend:
                 image = get_random_face_blending(path, n=3)
-                image = cv2.resize(image, (w, h))
+                image = pil_to_numpy(numpy_to_pil(image).resize((w, h), Image.LANCZOS))  #cv2.resize(image, (w, h))
                 image_orig[y:y + h, x:x + w] = image
-                image_orig = cv2.resize(image_orig, (100, 150))
+                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize((224, 224), Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
                 # cv2.imshow("original", image_orig)
                 # cv2.waitKey(0)
                 cv2.imwrite("final_"+path+"_blend/"+path+"_"+str(k)+".jpg", image_orig)
 
             else:
-                test = cv2.resize(image1, (100, 100))
+                test = pil_to_numpy(numpy_to_pil(image1).resize((224, 224), Image.LANCZOS))  #cv2.resize(image1, (100, 100))
                 files = os.listdir("cropped_"+path)
                 random_image_paths = random.sample(files, 10)
                 random_images = [cv2.imread("cropped_"+path+"/" + image_path) for image_path in random_image_paths]
                 image = get_random_face_chunking(test, random_images, chunk_size=25)
-                image = cv2.resize(image, (w, h))
+                image = pil_to_numpy(numpy_to_pil(image).resize((w, h), Image.LANCZOS))  #cv2.resize(image, (w, h))
                 image_orig[y:y + h, x:x + w] = image
-                image_orig = cv2.resize(image_orig, (100, 150))
+                image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize((224, 224), Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
                 # cv2.imshow("original", image_orig)
                 # cv2.waitKey(0)
                 cv2.imwrite("final_"+path+"_chunk/"+path+"_"+str(k)+".jpg", image_orig)
