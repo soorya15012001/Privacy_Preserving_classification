@@ -32,16 +32,20 @@ def crop(path, new_size=(224, 224)):
             x, y, w, h = faces[0]
             image = image[y:y+h, x:x+w]
             image = pil_to_numpy(numpy_to_pil(image).resize(new_size, Image.LANCZOS))  #cv2.resize(image, (100, 100))
-            cv2.imwrite("cropped_"+path+"/"+i, image)
+            cropped_path = path + "_cropped"
+            if not os.path.exists(cropped_path):
+                os.makedirs(cropped_path)
+            cv2.imwrite(path+"_cropped/"+i, image)
         except IndexError:
             os.remove(path+"/"+i)
+        
 
 def get_random_face_blending(path, n):
-    files = os.listdir("cropped_"+path+"/")
+    files = os.listdir(path+"_cropped/")
     image = np.zeros((100, 100, 3))
 
     for i, j in enumerate(random.sample(files, n)):
-        img = cv2.imread("cropped_"+path+"/" + j)
+        img = cv2.imread(path+"_cropped/" + j)
         if i == 0:
             image = img
         elif i == n-1:
@@ -112,27 +116,30 @@ def main(path, op=None, new_size=(224, 224)):
                 image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize(new_size, Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
                 # cv2.imshow("original", image_orig)
                 # cv2.waitKey(0)
-                cv2.imwrite("final_"+path+"_blend/"+path+"_"+str(k)+".jpg", image_orig)
-                print(f"Blended & resized images written to dir final_{path}_blend/")
+                if not os.path.exists(path+"_blend"):
+                    os.makedirs(path+"_blend")
+                cv2.imwrite(path+"_blend/img"+str(k)+".jpg", image_orig)
 
             elif op == "chunk":
                 test = pil_to_numpy(numpy_to_pil(image1).resize(new_size, Image.LANCZOS))  #cv2.resize(image1, (100, 100))
-                files = os.listdir("cropped_"+path)
+                files = os.listdir(path+"_cropped")
                 random_image_paths = random.sample(files, 10)
-                random_images = [cv2.imread("cropped_"+path+"/" + image_path) for image_path in random_image_paths]
+                random_images = [cv2.imread(path+"_cropped/" + image_path) for image_path in random_image_paths]
                 image = get_random_face_chunking(test, random_images, chunk_size=25)
                 image = pil_to_numpy(numpy_to_pil(image).resize((w, h), Image.LANCZOS))  #cv2.resize(image, (w, h))
                 image_orig[y:y + h, x:x + w] = image
                 image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize(new_size, Image.LANCZOS))  #cv2.resize(image_orig, (100, 150))
                 # cv2.imshow("original", image_orig)
                 # cv2.waitKey(0)
-                cv2.imwrite("final_"+path+"_chunk/"+path+"_"+str(k)+".jpg", image_orig)
-                print(f"Chunked & resized images written to dir final_{path}_chunk/")
+                if not os.path.exists(path+"_chunk"):
+                    os.makedirs(path+"_chunk")
+                cv2.imwrite(path+"_chunk/img"+str(k)+".jpg", image_orig)
 
             elif op == "resize":
                 image_orig = pil_to_numpy(numpy_to_pil(image_orig).resize(new_size, Image.LANCZOS))
-                cv2.imwrite("final_"+path+"_resized/"+path+"_"+str(k)+".jpg", image_orig)
-                print(f"Resized images written to dir final_{path}_resized/")
+                if not os.path.exists(path+"_resized"):
+                    os.makedirs(path+"_resized")
+                cv2.imwrite(path+"_resized/img"+str(k)+".jpg", image_orig)
 
             else:
                 print("Invalid arg: op argument to main(path, op) should be one of blend, chunk, and resize.")
@@ -141,11 +148,12 @@ def main(path, op=None, new_size=(224, 224)):
             os.remove(path+"/"+i)
 
 
-# crop("female")
+crop("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Female_Faces")
+crop("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Male_Faces")
 
-main("male", op="blend")
-main("female", op="blend")
-main("male", op="chunk")
-main("female", op="chunk")
-main("male", op="resize")
-main("female", op="resize")
+main("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Female_Faces", op="blend")
+main("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Male_Faces", op="blend")
+main("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Female_Faces", op="chunk")
+main("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Male_Faces", op="chunk")
+main("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Female_Faces", op="resize")
+main("/content/drive/MyDrive/Male_Female_Faces_Dataset/Male_and_Female_face_dataset/Male_Faces", op="resize")
